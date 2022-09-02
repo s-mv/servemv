@@ -18,52 +18,91 @@
 #define CLIENT_NUM (5)  // 1 client
 
 char* read_file(const char* file_name);
-void exit_fn();
 
-int main() {
-  atexit(exit_fn);
+int main(int argc, char* argv[]) {
+  // basic info
+  unsigned int port = 3000;
+  char* folder = ".";  // TODO
+
+  // read command line info
+  for (size_t i = 0; i < argc; i++) {
+    const char* cmd = argv[i];
+
+    // if "--help" or "-h"
+    if (!strcmp(cmd, "--help")) {
+      printf(
+          "*                   help                   *\n"
+          "servemv\n"
+          "usage: servemv <options> <path/to/directory>\n"
+          "options:\n"
+          "  --help   | -h      -    print help message\n"
+          "  --port n | -p n    -    server to port n\n"
+          "                                        ~smv\n"
+          );
+      return 0;
+    }
+  }
 
   // HTML file
   char* content;
-  // TODO accept file name
+  // TODO accept folder location
   if ((content = read_file("./index.html")) == NULL) {
-    printf("Error handling file.");
+    perror("Error handling file.\n");
     exit(EXIT_FAILURE);
   }
 
   char* header = "HTTP/1.1 200 OK\r\n\n";
   int response_len = strlen(content) + strlen(header);
   char response[response_len];
+  // wow I hate string stuff in C
   strcpy(response, header);
   strcat(response, content);
 
   // meet sock the socket
   int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) {
+    perror("Error");
+    exit(EXIT_FAILURE);
+  }
+
   // this defines our address (TODO accept address)
   struct sockaddr_in addr = {
       .sin_family = AF_INET,
       .sin_addr.s_addr = INADDR_ANY,
-      .sin_port = htons(3000),
+      .sin_port = htons(port),
   };
-  // bind the two
-  bind(sock, (struct sockaddr*)&addr, sizeof(addr));
-  listen(sock, CLIENT_NUM);
+
+  // bind the two and listen for connections (and handle errors)
+  if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) == -1 ||
+      listen(sock, CLIENT_NUM) == -1) {
+    perror("Error");
+    close(sock);
+    exit(EXIT_FAILURE);
+  }
 
   int sock_client;  // sock but this time it's a client socket
 
+  printf("* hosted at http://localhost:%u *\n", port);
   while (1) {
     // Dobby is a free elf!
     sock_client = accept(sock, NULL, NULL);
+    if (sock_client == -1) {
+      perror("Error handling connection");
+      continue;
+    }
     send(sock_client, response, sizeof(response), 0);
     close(sock_client);
   }
+
+  close(sock);
 
   return 0;
 }
 
 void exit_fn() { printf("\n\nServer closed."); }
 
-// utility functions
+/* utility functions */
+
 char* read_file(const char* file_name) {
   char* dest;
   int f = open(file_name, O_RDONLY);
