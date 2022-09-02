@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 // file reading utility
 #include <fcntl.h>
 #include <stdio.h>
@@ -15,18 +16,18 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define CLIENT_NUM (5)  // 1 client
+#define CLIENT_NUM (5)
 
 char* read_file(const char* file_name);
-void exit_fn();
+void exit_handler(int n);
 
 // basic info
 unsigned int port = 3000;
 char* folder = ".";  // TODO
+int print_on_exit = 0;
 
 int main(int argc, char* argv[]) {
-  atexit(&exit_fn);
-
+  signal(SIGINT, exit_handler);
   // read command line info
   for (size_t i = 0; i < argc; i++) {
     const char* cmd = argv[i];
@@ -109,7 +110,10 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-void exit_fn() { printf("\n\nServer closed.\n"); }
+void exit_handler(int n) {
+  if (!print_on_exit) write(STDOUT_FILENO, "\n\nServer closed.\n", 18);
+  exit(n);
+}
 
 /* utility functions */
 
