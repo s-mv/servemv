@@ -18,18 +18,21 @@
 #define CLIENT_NUM (5)  // 1 client
 
 char* read_file(const char* file_name);
+void exit_fn();
+
+// basic info
+unsigned int port = 3000;
+char* folder = ".";  // TODO
 
 int main(int argc, char* argv[]) {
-  // basic info
-  unsigned int port = 3000;
-  char* folder = ".";  // TODO
+  atexit(&exit_fn);
 
   // read command line info
   for (size_t i = 0; i < argc; i++) {
     const char* cmd = argv[i];
 
     // if "--help" or "-h"
-    if (!strcmp(cmd, "--help")) {
+    if (!strcmp(cmd, "--help") || !strcmp(cmd, "-h")) {
       printf(
           "*                   help                   *\n"
           "servemv\n"
@@ -37,9 +40,16 @@ int main(int argc, char* argv[]) {
           "options:\n"
           "  --help   | -h      -    print help message\n"
           "  --port n | -p n    -    server to port n\n"
-          "                                        ~smv\n"
-          );
-      return 0;
+          "                                        ~smv\n");
+      exit(EXIT_SUCCESS);
+    }
+    // custom port
+    if (!strcmp(cmd, "--port") || !strcmp(cmd, "-p")) {
+      if (++i >= argc) {
+        printf("--port: no port selected\n");
+        exit(EXIT_FAILURE);
+      }
+      port = atoi(argv[i]);
     }
   }
 
@@ -47,7 +57,7 @@ int main(int argc, char* argv[]) {
   char* content;
   // TODO accept folder location
   if ((content = read_file("./index.html")) == NULL) {
-    perror("Error handling file.\n");
+    printf("Error handling file.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -61,7 +71,7 @@ int main(int argc, char* argv[]) {
   // meet sock the socket
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
-    perror("Error");
+    printf("Socket error.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -75,7 +85,7 @@ int main(int argc, char* argv[]) {
   // bind the two and listen for connections (and handle errors)
   if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) == -1 ||
       listen(sock, CLIENT_NUM) == -1) {
-    perror("Error");
+    printf("Error!\n");  // TODO somehow can't come up with a desc
     close(sock);
     exit(EXIT_FAILURE);
   }
@@ -87,7 +97,7 @@ int main(int argc, char* argv[]) {
     // Dobby is a free elf!
     sock_client = accept(sock, NULL, NULL);
     if (sock_client == -1) {
-      perror("Error handling connection");
+      printf("Error handling connection.\n");
       continue;
     }
     send(sock_client, response, sizeof(response), 0);
@@ -99,7 +109,7 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-void exit_fn() { printf("\n\nServer closed."); }
+void exit_fn() { printf("\n\nServer closed.\n"); }
 
 /* utility functions */
 
