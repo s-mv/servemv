@@ -8,7 +8,8 @@ smv:
 	@echo "  installs the server"
 	@echo ""
 install:
-	make server && sudo cp $(NAME) /usr/bin/$(NAME)
+	@make server && sudo cp $(NAME) /usr/bin/$(NAME)
+	@echo "Done!"
 
 server:
-	clang server.c -o $(NAME) -std=c99
+	@clang server.c -o $(NAME) -std=c99
